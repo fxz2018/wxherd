@@ -1,0 +1,111 @@
+name: Release
+
+# 打 tag（v0.1.0）或手动触发时，编译三平台二进制并挂到 GitHub Release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "发布标签（如 v0.1.0，不存在会自动创建）"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive: tar.gz
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            archive: tar.gz
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: 编译
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # 归档目录刻意做成「可直接 link 的插件目录」：
+      #   wxherd-<target>/
+      #     herdr-plugin.toml         ← 清单里的命令路径是 target/release/wxherd
+      #     README.md  LICENSE
+      #     target/release/wxherd[.exe]
+      # 用户解压后 `herdr plugin link <目录>` 即可用，无需 Rust 环境。
+      - name: 打包
+        shell: bash
+        run: |
+          set -euo pipefail
+          NAME="wxherd-${{ matrix.target }}"
+          BIN="wxherd"
+          if [[ "${{ matrix.target }}" == *windows* ]]; then BIN="wxherd.exe"; fi
+
+          mkdir -p "dist/$NAME/target/release"
+          cp "target/${{ matrix.target }}/release/$BIN" "dist/$NAME/target/release/"
+          cp herdr-plugin.toml README.md LICENSE "dist/$NAME/"
+
+          cd dist
+          if [[ "${{ matrix.archive }}" == "zip" ]]; then
+            7z a -tzip "$NAME.zip" "$NAME" > /dev/null
+          else
+            tar czf "$NAME.tar.gz" "$NAME"
+          fi
+          ls -lh "$NAME".*
+
+      - name: 自检二进制可执行（仅同架构宿主）
+        shell: bash
+        continue-on-error: true
+        run: |
+          case "${{ matrix.target }}" in
+            x86_64-pc-windows-msvc) ./target/x86_64-pc-windows-msvc/release/wxherd.exe --version ;;
+            x86_64-unknown-linux-gnu) ./target/x86_64-unknown-linux-gnu/release/wxherd --version ;;
+            *) echo "跨架构构建，跳过运行自检" ;;
+          esac
+
+      - name: 上传到 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: ${{ inputs.tag || github.ref_name }}
+          draft: false
+          generate_release_notes: true
+          body: |
+            预编译二进制（无需 Rust 环境）。
+
+            | 平台 | 文件 |
+            |---|---|
+            | Windows x64 | `wxherd-x86_64-pc-windows-msvc.zip` |
+            | Linux x64 | `wxherd-x86_64-unknown-linux-gnu.tar.gz` |
+            | macOS Apple Silicon | `wxherd-aarch64-apple-darwin.tar.gz` |
+            | macOS Intel | `wxherd-x86_64-apple-darwin.tar.gz` |
+
+            **用法**：解压后目录即为 herdr 插件目录，`herdr plugin link <解压出的目录>`，
+            然后 `wxherd login` 扫码绑定微信。详见 README。
+          files: |
+            dist/*.zip
+            dist/*.tar.gz

@@ -55,7 +55,26 @@ wxherd 把这条链路搬到微信：
 
 ## 安装
 
-### 方式一：作为 Herdr 插件（推荐）
+### 方式零：直接下载预编译二进制（不用装 Rust）
+
+到 [Releases](https://github.com/fxz2018/wxherd/releases) 下载对应平台的包：
+
+| 平台 | 文件 |
+|---|---|
+| Windows x64 | `wxherd-x86_64-pc-windows-msvc.zip` |
+| Linux x64 | `wxherd-x86_64-unknown-linux-gnu.tar.gz` |
+| macOS Apple Silicon | `wxherd-aarch64-apple-darwin.tar.gz` |
+| macOS Intel | `wxherd-x86_64-apple-darwin.tar.gz` |
+
+解压出来的目录**就是可直接使用的 herdr 插件目录**（内含 `herdr-plugin.toml`
+与 `target/release/wxherd`）：
+
+```bash
+herdr plugin link /path/to/wxherd-x86_64-unknown-linux-gnu
+./wxherd-x86_64-unknown-linux-gnu/target/release/wxherd login   # 扫码绑定
+```
+
+### 方式一：作为 Herdr 插件（从源码编译）
 
 ```bash
 git clone https://github.com/fxz2018/wxherd
@@ -292,6 +311,15 @@ tui.rs           prefix+u 设置弹框（ratatui）
 cargo test                    # 149 个单元测试
 cargo clippy --all-targets    # 零警告基线
 cargo fmt --all               # 提交前格式化
+```
+
+### 发布新版本
+
+推一个 `v*` tag 即可，CI 会自动编译四平台二进制并挂到 Release：
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 协议细节、AES / CDN 处理集中在 `src/ilink/`。改行为请带测试——
