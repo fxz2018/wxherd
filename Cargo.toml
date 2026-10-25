@@ -1,0 +1,42 @@
+[package]
+name = "wxherd"
+version = "0.1.0"
+edition = "2021"
+description = "微信 ↔ Herdr 全功能桥接：Markdown 推送、双向遥控、媒体收发、AI 意图层"
+license = "MIT"
+repository = "https://github.com/fxz2018/wxherd"
+homepage = "https://github.com/fxz2018/wxherd"
+documentation = "https://github.com/fxz2018/wxherd#readme"
+readme = "README.md"
+keywords = ["herdr", "wechat", "weixin", "plugin", "agent"]
+categories = ["command-line-utilities"]
+publish = false
+
+[dependencies]
+anyhow = "1"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+aes = "0.8"
+chrono = "0.4"
+ecb = { version = "0.1", features = ["alloc", "block-padding"] }
+cipher = { version = "0.4", features = ["alloc", "block-padding"] }
+md-5 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+rand = "0.8"
+uuid = { version = "1", features = ["v4"] }
+qrcode = { version = "0.14", default-features = false }
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+fs2 = "0.4"
+thiserror = "2"
+ratatui = "0.29"
+crossterm = "0.28"
+
+[profile.release]
+strip = true
+lto = true

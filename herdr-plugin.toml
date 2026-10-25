@@ -1,0 +1,57 @@
+# wxherd herdr 插件清单
+#
+# 可移植性说明（已在 herdr 0.9.5 实测核验）：
+# 1) command 使用**相对路径** target/release/wxherd —— herdr 以插件目录为工作目录
+#    运行命令，故相对路径在所有平台上都能解析；Windows 侧由 PATHEXT 自动补 .exe，
+#    因此同一份清单可同时用于 windows / macos / linux。
+# 2) 不写 --state-dir —— 状态目录由 wxherd 自行解析（见 src/config.rs）：
+#    显式 --state-dir → WXHERD_STATE_DIR / HERDR_STATE_DIR → ~/.wxherd。
+#    刻意不读 HERDR_PLUGIN_CONFIG_DIR（herdr 会向所有插件运行时命令注入它），
+#    否则插件内与手动 CLI 会解析出不同状态目录，导致 daemon 双实例抢同一个 bot。
+# 3) pane placement 只接受 overlay / split / tab / zoomed（`popup` 非法）。
+# 4) 快捷键只能用 type = "plugin_action"；后台执行 TUI 无终端句柄会失败，
+#    故 prefix+u 绑定 open-settings：该子命令调 `herdr plugin pane open` 打开真实 pane。
+
+id = "wxherd.bridge"
+name = "WxHerd 微信桥"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "微信 ↔ Herdr 全功能桥接：Markdown 推送、媒体收发、语音遥控、AI 意图学习"
+platforms = ["windows", "macos", "linux"]
+
+# herdr plugin install / update 时自动编译（需要本机有 cargo）。
+# 注意：plugin link 不执行本段，本地开发需先手动 `cargo build --release`
+[[build]]
+command = ["cargo", "build", "--release"]
+
+# prefix+u 绑定的动作：以真实 pane 打开设置弹框（后台执行 TUI 无 TTY 会失败）
+[[actions]]
+id = "settings"
+title = "WxHerd 设置"
+command = ["target/release/wxherd", "open-settings"]
+
+[[actions]]
+id = "status"
+title = "WxHerd 状态"
+command = ["target/release/wxherd", "status"]
+
+[[actions]]
+id = "doctor"
+title = "WxHerd 诊断"
+command = ["target/release/wxherd", "doctor"]
+
+# 设置弹框 pane：overlay 浮层，关掉即消失，无常驻 UI
+[[panes]]
+id = "settings"
+title = "WxHerd 微信桥设置"
+placement = "overlay"
+command = ["target/release/wxherd", "settings-tui"]
+
+# agent 状态变化 → 事件钩子（与守护进程轮询双路径，靠文件锁去重）
+[[events]]
+on = "pane.agent_status_changed"
+command = ["target/release/wxherd", "event"]
+
+# 跟随 herdr 启动：一次性钩子，拉起守护进程（分离进程）后立即退出
+[[startup]]
+command = ["target/release/wxherd", "startup-hook"]

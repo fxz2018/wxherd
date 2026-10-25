@@ -1,0 +1,27 @@
+# 编译产物
+/target/
+
+# 运行时状态（默认状态目录为 ~/.wxherd，此处防御性忽略仓库内副本）
+/.wxherd/
+/credentials.json
+/sync.json
+/runtime.json
+/notify-state.json
+/notify-state.lock
+/learned-rules.json
+/daemon.pid
+/daemon.log
+/daemon.lock
+/media/
+
+# 日志与临时文件
+/tmp/
+*.log
+*.patch
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
